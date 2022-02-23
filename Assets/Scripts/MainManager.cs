@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,18 +11,41 @@ public class MainManager : MonoBehaviour
     public int LineCount = 6;
     public Rigidbody Ball;
 
+    [SerializeField] Text bestScoreText;
+    [SerializeField] InputField nameInputField;
+
     public Text ScoreText;
     public GameObject GameOverText;
-    
+    [SerializeField] GameObject pressSpaceText;
+
     private bool m_Started = false;
     private int m_Points;
     
     private bool m_GameOver = false;
 
-    
+    string fileName = "savedata.json";
+    string path;
+
+    [System.Serializable]
+    class BestScore
+    {
+        public string name = "";
+        public int bestScore = 0;
+    }
+    BestScore bestScore;
+
     // Start is called before the first frame update
     void Start()
     {
+        bestScore = new BestScore();
+        path = $"{Application.persistentDataPath}/{fileName}";
+        LoadScore();
+        if (bestScore.name != "")
+        {
+            bestScoreText.text = $"Best Score : {bestScore.name} : {bestScore.bestScore}";
+            bestScoreText.gameObject.SetActive(true);
+        }
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -55,10 +79,19 @@ public class MainManager : MonoBehaviour
         }
         else if (m_GameOver)
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.Space) && !nameInputField.IsActive())
             {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
+        }
+
+        if (m_Points > bestScore.bestScore)
+        {
+            bestScore.bestScore = m_Points;
+            bestScoreText.text = $"Best Score : {bestScore.bestScore}";
+            
+            if (!bestScoreText.IsActive())
+                bestScoreText.gameObject.SetActive(true);
         }
     }
 
@@ -72,5 +105,47 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+
+        if (bestScore.bestScore == m_Points)
+        {
+            nameInputField.gameObject.SetActive(true);
+        }
+        else
+        {
+            pressSpaceText.SetActive(true);
+        }
+    }
+
+    private void SaveScore()
+    {
+        string json = JsonUtility.ToJson(bestScore);
+
+        File.WriteAllText(path, json);
+    }
+
+    private void LoadScore()
+    {
+        if(File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+
+            bestScore = JsonUtility.FromJson<BestScore>(json);
+        }
+    }
+
+    public void OnNameInputValueChanged()
+    {
+        bestScore.name = nameInputField.text;
+        bestScoreText.text = $"Best Score : {bestScore.name} : {bestScore.bestScore}";
+    }
+
+    public void OnNameInputEndEdit()
+    {
+        bestScore.name = nameInputField.text;
+        bestScoreText.text = $"Best Score : {bestScore.name} : {bestScore.bestScore}";
+        SaveScore();
+        nameInputField.gameObject.SetActive(false);
+
+        pressSpaceText.SetActive(true);
     }
 }
