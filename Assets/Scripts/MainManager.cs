@@ -106,7 +106,7 @@ public class MainManager : MonoBehaviour
         m_GameOver = true;
         GameOverText.SetActive(true);
 
-        if (bestScore.bestScore == m_Points)
+        if (bestScore.bestScore > m_Points)
         {
             nameInputField.gameObject.SetActive(true);
         }
